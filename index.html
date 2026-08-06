@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Forma</title>
+<meta name="description" content="Personal calorie and macro tracker built around a fixed rotation of meals." />
+
+<link rel="manifest" href="./manifest.webmanifest" />
+<meta name="theme-color" content="#0e0e0d" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)" />
+
+<link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Forma" />
+
+<link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar__brand">
+      <span class="app-bar__mark" aria-hidden="true"></span>
+      <span class="app-bar__name">Forma</span>
+      <span class="app-bar__title" id="app-title">Today</span>
+    </div>
+    <button class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">⚙</button>
+  </header>
+
+  <main id="app" class="app-main">
+    <noscript>
+      <p style="padding:2rem">Forma needs JavaScript — it does all its arithmetic in the browser.</p>
+    </noscript>
+  </main>
+
+  <nav class="tab-bar" aria-label="Main">
+    <a class="tab" data-tab="day" href="#/day"><span class="tab__icon" aria-hidden="true">◐</span>Today</a>
+    <a class="tab" data-tab="recipes" href="#/recipes"><span class="tab__icon" aria-hidden="true">◍</span>Recipes</a>
+    <a class="tab" data-tab="history" href="#/history"><span class="tab__icon" aria-hidden="true">◫</span>History</a>
+    <a class="tab" data-tab="guide" href="#/guide"><span class="tab__icon" aria-hidden="true">❄</span>Storage</a>
+  </nav>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
