@@ -7,7 +7,7 @@
  * activate and the app prompts to reload.
  */
 
-const CACHE_VERSION = 'forma-v1.0.0';
+const CACHE_VERSION = 'forma-v2.0.0';
 
 const PRECACHE = [
   './',
@@ -20,16 +20,11 @@ const PRECACHE = [
   './js/nutrition.js',
   './js/ui.js',
   './js/pwa.js',
-  './js/data/ingredients.js',
-  './js/data/recipes.js',
-  './js/data/guide.js',
-  './js/components/pickers.js',
-  './js/components/itemsEditor.js',
+  './js/data/foods.js',
   './js/views/today.js',
-  './js/views/recipes.js',
-  './js/views/recipeEdit.js',
+  './js/views/build.js',
+  './js/views/saved.js',
   './js/views/history.js',
-  './js/views/guide.js',
   './js/views/settings.js',
   './assets/icons/favicon.svg',
   './assets/icons/icon-192.png',

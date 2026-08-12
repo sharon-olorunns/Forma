@@ -1,13 +1,13 @@
 {
   "name": "Forma — meals & macros",
   "short_name": "Forma",
-  "description": "Personal calorie and macro tracker built around a fixed rotation of meals. Works offline.",
+  "description": "Build a meal from ingredients and see the calories and macros instantly. Works offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0e0e0d",
-  "theme_color": "#0e0e0d",
+  "background_color": "#0A0A0B",
+  "theme_color": "#0A0A0B",
   "categories": ["health", "food", "lifestyle"],
   "lang": "en-GB",
   "icons": [
@@ -16,8 +16,8 @@
     { "src": "./assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Today", "url": "./index.html#/day", "description": "Log what you have eaten today" },
-    { "name": "Recipes", "url": "./index.html#/recipes", "description": "Browse the rotation" },
-    { "name": "Storage guide", "url": "./index.html#/guide", "description": "How long things keep" }
+    { "name": "Build a meal", "url": "./index.html#/build", "description": "Add ingredients and get the macros" },
+    { "name": "Today", "url": "./index.html#/day", "description": "Where you stand against your targets" },
+    { "name": "Saved meals", "url": "./index.html#/saved", "description": "Log a saved meal again" }
   ]
 }

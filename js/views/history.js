@@ -1,8 +1,8 @@
-/** History: what you actually ate, and how the averages are trending. */
+/** History: how the days have actually gone. */
 
-import { html, raw, macroValue, formatDate, relativeDay, toast } from '../ui.js';
-import { getState, loggedDays, getDay, lookupIngredient, todayKey, shiftDate, copyDay } from '../store.js';
-import { dayTotals, averageTotals, MACRO_KEYS } from '../nutrition.js';
+import { html, raw, bigValue, macroValue, formatDate, relativeDay } from '../ui.js';
+import { getState, loggedDays, getDay, lookupFood, todayKey, shiftDate } from '../store.js';
+import { dayTotals, averageTotals, MACRO_KEYS, MACRO_META } from '../nutrition.js';
 import { navigate } from '../router.js';
 
 export function renderHistory() {
@@ -14,53 +14,48 @@ export function renderHistory() {
       <section class="view view--history">
         <div class="empty-state">
           <p class="empty-state__title">No history yet.</p>
-          <p class="muted">Log a day or two and this fills up with totals, streaks and averages.</p>
+          <p class="muted">Log a couple of days and this fills up with totals and averages.</p>
         </div>
       </section>`;
   }
 
-  const last7 = lastNDays(7);
-  const last28 = lastNDays(28);
-  const avg7 = averageTotals(last7, lookupIngredient);
-  const avg28 = averageTotals(last28, lookupIngredient);
-
-  const rows = keys.map((key) => {
-    const totals = dayTotals(getDay(key).entries, lookupIngredient);
-    const pct = targets.cal > 0 ? Math.min((totals.cal / targets.cal) * 100, 130) : 0;
-    const proteinHit = totals.protein >= targets.protein * 0.9;
-    return html`
-      <li class="history-row">
-        <button class="history-row__main" data-action="open-day" data-date="${key}">
-          <span class="history-row__date">
-            <strong>${raw(relativeDay(key, todayKey()))}</strong>
-            <span class="muted">${raw(formatDate(key, { short: true }))}</span>
-          </span>
-          <span class="history-row__bar">
-            <i style="width:${raw(pct.toFixed(1))}%" class="${raw(totals.cal > targets.cal ? 'is-over' : '')}"></i>
-          </span>
-          <span class="history-row__totals">
-            <strong>${raw(macroValue('cal', totals.cal))}</strong>
-            <span class="${raw(proteinHit ? 'is-hit' : 'muted')}">${raw(macroValue('protein', totals.protein))}g P</span>
-          </span>
-        </button>
-        <button class="icon-btn icon-btn--sm" data-action="repeat-day" data-date="${key}"
-                aria-label="Copy ${formatDate(key)} to today" title="Copy to today">⧉</button>
-      </li>`;
-  });
+  const avg7 = averageTotals(lastNDays(7), lookupFood);
+  const avg28 = averageTotals(lastNDays(28), lookupFood);
 
   return html`
     <section class="view view--history">
-      <div class="card">
-        <h3>Averages</h3>
-        <div class="avg-grid">
-          ${raw(renderAverage('Last 7 days', avg7, targets))}
-          ${raw(renderAverage('Last 28 days', avg28, targets))}
-        </div>
-        <p class="hint">Days with nothing logged are left out of the average, so a missed day doesn't drag it down.</p>
+      <div class="avg-row">
+        ${raw(renderAverage('7-day average', avg7, targets))}
+        ${raw(renderAverage('28-day average', avg28, targets))}
       </div>
+      <p class="hint">Days with nothing logged are left out, so a missed day doesn't drag the average down.</p>
 
-      <h3 class="day-section__title">Every logged day <span class="muted">${raw(keys.length)} total</span></h3>
-      <ul class="history-list">${raw(rows.join(''))}</ul>
+      <h3 class="section-title">Every logged day <span class="muted">${raw(keys.length)}</span></h3>
+      <ul class="history-list">
+        ${raw(keys.map((key) => {
+          const totals = dayTotals(getDay(key).entries, lookupFood);
+          const pct = targets.cal > 0 ? Math.min((totals.cal / targets.cal) * 100, 130) : 0;
+          const over = totals.cal > targets.cal;
+          const proteinHit = totals.protein >= targets.protein * 0.9;
+          const count = getDay(key).entries.length;
+          return html`
+            <li>
+              <button class="history-row" data-action="open-day" data-date="${key}">
+                <span class="history-row__date">
+                  <strong>${raw(relativeDay(key, todayKey()))}</strong>
+                  <span class="muted">${raw(formatDate(key, { short: true }))} · ${raw(count)} ${raw(count === 1 ? 'meal' : 'meals')}</span>
+                </span>
+                <span class="history-row__bar">
+                  <i class="${raw(over ? 'is-over' : '')}" style="width:${raw(pct.toFixed(1))}%"></i>
+                </span>
+                <span class="history-row__totals">
+                  <strong class="${raw(over ? 'is-over' : '')}">${raw(bigValue(totals.cal))}</strong>
+                  <span class="${raw(proteinHit ? 'is-hit' : 'muted')}">${raw(macroValue('protein', totals.protein))}g P</span>
+                </span>
+              </button>
+            </li>`;
+        }).join(''))}
+      </ul>
     </section>`;
 }
 
@@ -70,17 +65,19 @@ function renderAverage(label, { average, days }, targets) {
   }
   return html`
     <div class="avg-card">
-      <h4>${label} <span class="muted">${raw(days)} logged</span></h4>
+      <h4>${label} <span class="muted">${raw(days)} ${raw(days === 1 ? 'day' : 'days')}</span></h4>
       <div class="avg-card__cal">
-        <strong>${raw(macroValue('cal', average.cal))}</strong>
-        <span class="muted">/ ${raw(macroValue('cal', targets.cal))} cal</span>
+        <strong>${raw(bigValue(average.cal))}</strong>
+        <span class="muted">/ ${raw(bigValue(targets.cal))}</span>
       </div>
       <ul class="avg-card__macros">
         ${raw(MACRO_KEYS.filter((k) => k !== 'cal').map((k) => {
           const hit = average[k] >= targets[k] * 0.9;
-          return html`<li class="${raw(hit ? 'is-hit' : '')}">
-            ${raw(macroValue(k, average[k]))}g <span class="muted">${k}</span>
-          </li>`;
+          return html`
+            <li class="${raw(hit ? 'is-hit' : '')}" data-macro="${k}">
+              ${raw(macroValue(k, average[k]))}g
+              <span class="muted">${raw(MACRO_META[k].short.toLowerCase())}</span>
+            </li>`;
         }).join(''))}
       </ul>
     </div>`;
@@ -97,19 +94,7 @@ function lastNDays(n) {
 }
 
 export function historyActions(event) {
-  const target = event.target.closest('[data-action]');
+  const target = event.target.closest('[data-action="open-day"]');
   if (!target) return;
-  const date = target.dataset.date;
-
-  if (target.dataset.action === 'open-day') {
-    navigate(`#/day/${date}`);
-    return;
-  }
-  if (target.dataset.action === 'repeat-day') {
-    const count = copyDay(date, todayKey());
-    if (count) {
-      toast(`${count} ${count === 1 ? 'meal' : 'meals'} copied to today`);
-      navigate(`#/day/${todayKey()}`);
-    }
-  }
+  navigate(`#/day/${target.dataset.date}`);
 }

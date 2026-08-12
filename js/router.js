@@ -1,18 +1,14 @@
 /**
- * Hash routing. Hash rather than History API so the app works from any path —
- * GitHub Pages project sites, a file:// copy, wherever it ends up — with no
- * server rewrite rules.
+ * Hash routing. Hash rather than the History API so the app works from any path
+ * — GitHub Pages project sites, Vercel, a file:// copy — with no server rewrite
+ * rules.
  */
 
 const ROUTES = [
   { name: 'day', pattern: /^#\/day\/(\d{4}-\d{2}-\d{2})$/, keys: ['date'] },
-  { name: 'recipes', pattern: /^#\/recipes$/, keys: [] },
-  { name: 'recipe-new', pattern: /^#\/recipes\/new$/, keys: [] },
-  { name: 'recipe-edit', pattern: /^#\/recipes\/([^/]+)\/edit$/, keys: ['id'] },
-  { name: 'recipe-copy', pattern: /^#\/recipes\/([^/]+)\/copy$/, keys: ['id'] },
-  { name: 'recipe', pattern: /^#\/recipes\/([^/]+)$/, keys: ['id'] },
+  { name: 'build', pattern: /^#\/build$/, keys: [] },
+  { name: 'saved', pattern: /^#\/saved$/, keys: [] },
   { name: 'history', pattern: /^#\/history$/, keys: [] },
-  { name: 'guide', pattern: /^#\/guide$/, keys: [] },
   { name: 'settings', pattern: /^#\/settings$/, keys: [] },
 ];
 
@@ -38,7 +34,7 @@ export function navigate(hash) {
   window.location.hash = hash;
 }
 
-/** Replace rather than push — used for redirects that shouldn't stack up. */
+/** Replace rather than push — for redirects that shouldn't stack up. */
 export function redirect(hash) {
   const url = `${window.location.pathname}${window.location.search}${hash}`;
   window.history.replaceState(null, '', url);
