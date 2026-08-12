@@ -1,46 +1,30 @@
 /** App shell: wires the router, the store and the views together. */
 
-import { load, subscribe, todayKey } from './store.js';
+import { load, subscribe, todayKey, getState } from './store.js';
 import { parseRoute, onRoute, navigate, redirect } from './router.js';
 import { captureFocus, restoreFocus, closeSheet, isSheetOpen } from './ui.js';
 import { initPwa } from './pwa.js';
 
 import { renderToday, todayActions } from './views/today.js';
-import { renderRecipes, renderRecipeDetail, recipeActions, recipeInput } from './views/recipes.js';
-import { renderRecipeEdit, recipeEditActions, recipeEditInput, clearDraft } from './views/recipeEdit.js';
+import { renderBuild, buildActions, buildInput, resetBuildView } from './views/build.js';
+import { renderSaved, savedActions, savedInput } from './views/saved.js';
 import { renderHistory, historyActions } from './views/history.js';
-import { renderGuide, guideInput } from './views/guide.js';
 import { renderSettings, settingsActions, settingsChange } from './views/settings.js';
 
 const root = document.getElementById('app');
-const TABS = [
-  { id: 'day', label: 'Today', href: () => `#/day/${todayKey()}`, icon: '◐' },
-  { id: 'recipes', label: 'Recipes', href: () => '#/recipes', icon: '◍' },
-  { id: 'history', label: 'History', href: () => '#/history', icon: '◫' },
-  { id: 'guide', label: 'Storage', href: () => '#/guide', icon: '❄' },
-];
 
-const TAB_FOR_ROUTE = {
-  day: 'day',
-  recipes: 'recipes',
-  recipe: 'recipes',
-  'recipe-edit': 'recipes',
-  'recipe-copy': 'recipes',
-  'recipe-new': 'recipes',
-  history: 'history',
-  guide: 'guide',
-  settings: null,
-};
+const TABS = [
+  { id: 'day', label: 'Today', href: () => `#/day/${todayKey()}` },
+  { id: 'build', label: 'Build', href: () => '#/build' },
+  { id: 'saved', label: 'Saved', href: () => '#/saved' },
+  { id: 'history', label: 'History', href: () => '#/history' },
+];
 
 const TITLES = {
   day: 'Today',
-  recipes: 'Recipes',
-  recipe: 'Recipe',
-  'recipe-edit': 'Edit recipe',
-  'recipe-copy': 'Duplicate recipe',
-  'recipe-new': 'New recipe',
+  build: 'Build a meal',
+  saved: 'Saved meals',
   history: 'History',
-  guide: 'Storage guide',
   settings: 'Settings',
 };
 
@@ -48,26 +32,12 @@ let current = parseRoute();
 
 function viewMarkup(route) {
   switch (route.name) {
-    case 'day':
-      return renderToday(route.params);
-    case 'recipes':
-      return renderRecipes();
-    case 'recipe':
-      return renderRecipeDetail(route.params);
-    case 'recipe-new':
-      return renderRecipeEdit(route.params, 'new');
-    case 'recipe-edit':
-      return renderRecipeEdit(route.params, 'edit');
-    case 'recipe-copy':
-      return renderRecipeEdit(route.params, 'copy');
-    case 'history':
-      return renderHistory();
-    case 'guide':
-      return renderGuide();
-    case 'settings':
-      return renderSettings();
-    default:
-      return renderToday({});
+    case 'day': return renderToday(route.params);
+    case 'build': return renderBuild();
+    case 'saved': return renderSaved();
+    case 'history': return renderHistory();
+    case 'settings': return renderSettings();
+    default: return renderToday({});
   }
 }
 
@@ -79,88 +49,61 @@ function render() {
 }
 
 function paintChrome() {
-  const activeTab = TAB_FOR_ROUTE[current.name];
   document.querySelectorAll('[data-tab]').forEach((el) => {
-    el.classList.toggle('is-active', el.dataset.tab === activeTab);
-    if (el.dataset.tab === activeTab) el.setAttribute('aria-current', 'page');
+    const active = el.dataset.tab === current.name;
+    el.classList.toggle('is-active', active);
+    if (active) el.setAttribute('aria-current', 'page');
     else el.removeAttribute('aria-current');
   });
   const title = document.getElementById('app-title');
   if (title) title.textContent = TITLES[current.name] || 'Forma';
   document.body.dataset.route = current.name;
-}
 
-// ─── Event wiring ────────────────────────────────────────────────────────────
+  // The Build tab carries a dot when a meal is part-composed.
+  const draft = getState().draft;
+  const buildTab = document.querySelector('[data-tab="build"]');
+  if (buildTab) buildTab.classList.toggle('has-draft', Boolean(draft && draft.items.length));
+}
 
 function rerender() {
   render();
 }
 
-function handleEvent(event) {
+function handleClick(event) {
   switch (current.name) {
-    case 'day':
-      todayActions(event, current.params, rerender);
-      break;
-    case 'recipes':
-    case 'recipe':
-      recipeActions(event, current.params, rerender);
-      break;
-    case 'recipe-new':
-      recipeEditActions(event, current.params, 'new', rerender);
-      break;
-    case 'recipe-edit':
-      recipeEditActions(event, current.params, 'edit', rerender);
-      break;
-    case 'recipe-copy':
-      recipeEditActions(event, current.params, 'copy', rerender);
-      break;
-    case 'history':
-      historyActions(event);
-      break;
-    case 'settings':
-      settingsActions(event, rerender);
-      break;
+    case 'day': todayActions(event, current.params); break;
+    case 'build': buildActions(event, rerender); break;
+    case 'saved': savedActions(event); break;
+    case 'history': historyActions(event); break;
+    case 'settings': settingsActions(event); break;
     default:
   }
 }
 
 function handleInput(event) {
   switch (current.name) {
-    case 'recipes':
-      recipeInput(event, rerender);
-      break;
-    case 'guide':
-      guideInput(event, rerender);
-      break;
-    case 'recipe-new':
-    case 'recipe-edit':
-    case 'recipe-copy':
-      recipeEditInput(event);
-      break;
-    case 'settings':
-      settingsActions(event, rerender);
-      break;
+    case 'build': buildInput(event, rerender); break;
+    case 'saved': savedInput(event, rerender); break;
+    case 'settings': settingsActions(event); break;
     default:
   }
 }
 
 function handleChange(event) {
   if (current.name === 'settings') settingsChange(event);
-  if (event.target.matches('[data-action="item-measure"]')) handleEvent(event);
-  if (event.target.matches('select[data-action="field"]')) handleEvent(event);
 }
 
 function start() {
   load();
   initPwa();
 
-  // Land on today's date rather than a bare route, so the URL is shareable/bookmarkable.
-  if (!window.location.hash || current.name === 'day' && !current.params.date) {
+  // Land on today's date rather than a bare route, so the URL is bookmarkable.
+  if (!window.location.hash || (current.name === 'day' && !current.params.date)) {
     redirect(`#/day/${todayKey()}`);
     current = parseRoute();
   }
 
-  root.addEventListener('click', handleEvent);
+  root.addEventListener('click', handleClick);
   root.addEventListener('input', handleInput);
   root.addEventListener('change', handleChange);
 
@@ -168,26 +111,23 @@ function start() {
     el.addEventListener('click', (e) => {
       e.preventDefault();
       const tab = TABS.find((t) => t.id === el.dataset.tab);
-      if (tab) navigate(tab.href());
+      if (!tab) return;
+      // Re-entering Build from the tab bar clears the stale search box.
+      if (tab.id === 'build' && current.name !== 'build') resetBuildView();
+      navigate(tab.href());
     });
   });
 
   const settingsBtn = document.getElementById('settings-btn');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => navigate('#/settings'));
-  }
+  if (settingsBtn) settingsBtn.addEventListener('click', () => navigate('#/settings'));
 
   onRoute(() => {
-    const next = parseRoute();
-    const leavingEditor = current.name.startsWith('recipe-') && !next.name.startsWith('recipe-');
-    if (leavingEditor) clearDraft();
-    current = next;
+    current = parseRoute();
     closeSheet();
     render();
     window.scrollTo(0, 0);
   });
 
-  // A store change means the numbers moved — repaint whatever is on screen.
   subscribe(() => render());
 
   document.addEventListener('keydown', (e) => {

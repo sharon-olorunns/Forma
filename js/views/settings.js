@@ -1,25 +1,23 @@
-/** Settings: targets, hidden recipes, backup, and the honest note about numbers. */
+/** Settings: targets, your own foods, backup, and the note about the numbers. */
 
-import { html, raw, toast } from '../ui.js';
-import { getState, setTargets, exportData, importData, clearAll, archiveRecipe,
-  loggedDays, allRecipes } from '../store.js';
+import { html, raw, bigValue, toast } from '../ui.js';
+import {
+  getState, setTargets, exportData, importData, clearAll, loggedDays, allMeals,
+} from '../store.js';
 import { MACRO_KEYS, MACRO_META } from '../nutrition.js';
-import { DEFAULT_TARGETS } from '../data/guide.js';
-import { BUILTIN_RECIPES_BY_ID } from '../data/recipes.js';
+import { DEFAULT_TARGETS, FOODS } from '../data/foods.js';
 import { APP_VERSION, canInstall, promptInstall } from '../pwa.js';
 
 export function renderSettings() {
   const state = getState();
   const targets = state.settings.targets;
-  const archived = (state.archived || []).map((id) => BUILTIN_RECIPES_BY_ID[id] || state.recipes[id]).filter(Boolean);
-  const dayCount = loggedDays().length;
-  const customRecipes = Object.keys(state.recipes).length;
-  const customIngredients = Object.keys(state.ingredients).length;
+  const customFoods = Object.keys(state.foods).length;
 
   return html`
     <section class="view view--settings">
       <div class="card">
         <h3>Daily targets</h3>
+        <p class="hint">Everything on the day screen is measured against these.</p>
         <div class="grid-2">
           ${raw(MACRO_KEYS.map((k) => html`
             <label class="field">
@@ -29,9 +27,7 @@ export function renderSettings() {
                      value="${raw(targets[k])}" />
             </label>`).join(''))}
         </div>
-        <button class="btn btn--ghost btn--sm" data-action="reset-targets">Reset to the plan's targets</button>
-        <p class="hint">Plan defaults: ${raw(DEFAULT_TARGETS.cal)} cal · ${raw(DEFAULT_TARGETS.protein)}g protein ·
-          ${raw(DEFAULT_TARGETS.carbs)}g carbs · ${raw(DEFAULT_TARGETS.fat)}g fat · ${raw(DEFAULT_TARGETS.fibre)}g fibre.</p>
+        <button class="btn btn--ghost btn--sm" data-action="reset-targets">Reset to defaults</button>
       </div>
 
       ${raw(canInstall() ? html`
@@ -44,12 +40,12 @@ export function renderSettings() {
       <div class="card">
         <h3>Your data</h3>
         <dl class="stat-list">
-          <div><dt>Days logged</dt><dd>${raw(dayCount)}</dd></div>
-          <div><dt>Recipes</dt><dd>${raw(allRecipes().length)} <span class="muted">(${raw(customRecipes)} yours)</span></dd></div>
-          <div><dt>Custom ingredients</dt><dd>${raw(customIngredients)}</dd></div>
+          <div><dt>Days logged</dt><dd>${raw(loggedDays().length)}</dd></div>
+          <div><dt>Saved meals</dt><dd>${raw(allMeals().length)}</dd></div>
+          <div><dt>Foods</dt><dd>${raw(FOODS.length + customFoods)} <span class="muted">(${raw(customFoods)} yours)</span></dd></div>
         </dl>
-        <p class="hint">Everything lives on this device only — nothing is uploaded anywhere. Export now and then so a
-          cleared browser can't take your history with it.</p>
+        <p class="hint">Everything lives on this device only — nothing is uploaded anywhere. Export now and
+          then, so a cleared browser can't take your history with it.</p>
         <div class="button-row">
           <button class="btn btn--ghost" data-action="export">Export backup</button>
           <button class="btn btn--ghost" data-action="import">Restore backup</button>
@@ -57,48 +53,34 @@ export function renderSettings() {
         <input type="file" accept="application/json,.json" data-role="import-file" hidden />
       </div>
 
-      ${raw(archived.length ? html`
-        <div class="card">
-          <h3>Hidden recipes</h3>
-          <ul class="simple-list">
-            ${raw(archived.map((r) => html`
-              <li>
-                <span>${r.name}</span>
-                <button class="btn btn--sm btn--ghost" data-action="unarchive" data-id="${r.id}">Restore</button>
-              </li>`).join(''))}
-          </ul>
-        </div>` : '')}
-
       <div class="card">
         <h3>About the numbers</h3>
-        <p>Forma computes every figure from the ingredient list — per-100g values × the weight you entered. Change a
-          quantity and the totals move with it.</p>
-        <p>That means the totals won't always match the round numbers printed in <em>The Kitchen · Two Meals</em>.
-          Those were sensible estimates; these are the arithmetic. Where they disagree, the recipe page shows both.</p>
+        <p>Forma computes every figure from the ingredient list — per-100g values × the weight you
+          entered. Change an amount and the totals move with it.</p>
         <ul class="bullets">
-          <li>Weights are raw / as-bought — dry rice, raw mince, raw chicken.</li>
+          <li>Weights are raw / as-bought unless a food says “cooked”.</li>
           <li>Carbs exclude fibre, UK label style. Fibre is counted separately.</li>
-          <li>Ingredient values are typical supermarket figures, good to about ±5%.</li>
-          <li>Edit any ingredient's values by adding your own version from the packet.</li>
+          <li>Values are typical UK supermarket figures, good to about ±5%.</li>
+          <li>Frying adds the oil you used — add it as its own line and you'll be close.</li>
+          <li>Disagree with a value? Add your own version from the packet and use that instead.</li>
         </ul>
       </div>
 
       <div class="card">
         <h3 class="danger-title">Danger zone</h3>
         <button class="btn btn--ghost btn--danger" data-action="clear-all">Delete everything</button>
-        <p class="hint">Wipes history, your recipes and your settings from this device. Export first.</p>
+        <p class="hint">Wipes your history, saved meals and settings from this device. Export first.</p>
       </div>
 
       <p class="version">Forma v${raw(APP_VERSION)}</p>
     </section>`;
 }
 
-export function settingsActions(event, rerender) {
+export function settingsActions(event) {
   const target = event.target.closest('[data-action]');
   if (!target) return;
-  const action = target.dataset.action;
 
-  switch (action) {
+  switch (target.dataset.action) {
     case 'target': {
       // Ignore the empty field mid-edit, otherwise clearing it snaps the target to 0.
       if (target.value.trim() === '') return;
@@ -122,10 +104,6 @@ export function settingsActions(event, rerender) {
       input.click();
       return;
     }
-    case 'unarchive':
-      archiveRecipe(target.dataset.id, false);
-      toast('Recipe restored');
-      return;
     case 'clear-all':
       if (!confirm('Delete all Forma data on this device? This cannot be undone.')) return;
       if (!confirm('Really delete everything? Export a backup first if you might want it back.')) return;
@@ -155,9 +133,8 @@ function downloadBackup() {
   const blob = new Blob([exportData()], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const stamp = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = `forma-backup-${stamp}.json`;
+  link.download = `forma-backup-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
